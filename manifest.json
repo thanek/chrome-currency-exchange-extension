@@ -1,0 +1,18 @@
+{
+    "manifest_version": 2,
+    "name": "Currency exchange calculator",
+    "description": "Get exchange calculation right after you select currency and right mouse click",
+    "version": "1.0",
+    "permissions": [
+	"contextMenus","background","tabs","activeTab", "nativeMessaging"
+    ],
+    "background": {
+	"scripts": ["bg.js"]
+    },
+    "content_scripts": [{
+        "matches": ["*://*/*"],
+        "js": ["content.js"],
+        "run_at": "document_idle",
+        "all_frames": true
+    }]
+}
