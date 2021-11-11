@@ -1,40 +1,44 @@
 var tooltip = null;
 var targetCurrency = 'PLN';
 
-var currencies = [ {
+var symbols = [
+    {symbol: '\\$', currency: 'USD'},
+    {symbol: '€', currency: 'EUR'},
+    {symbol: '£', currency: 'GBP'},
+    {symbol: '฿', currency: 'BTC'}
+];
+
+var getCurrencies = function() {
+    var c = [{
 	regex: /(\d*[\.,]?\d*)\s*([A-Z]{3})/,
-	symbol: function(match) {
+	currency: function(match) {
 	    return match[2];
 	},
 	amount: function(match) {
 	    return match[1];
 	}
-    },{
-	regex: /(\d*[\.,]?\d*)\s*€/,
-	symbol: function(match) {
-	    return 'EUR';
-	},
-	amount: function(match) {
-	    return match[1];
-	}
-    },{
-	regex: /£(\d*[\.,]?\d*)\s*/,
-	symbol: function(match) {
-	    return 'GBP';
-	},
-	amount: function(match) {
-	    return match[1];
-	}
-    },{
-	regex: /\$(\d*[\.,]?\d*)/,
-	symbol: function(match) {
-	    return 'USD';
-	},
-	amount: function(match) {
-	    return match[1];
-	}
+    }];
+    
+    for(s of symbols) {
+	var currencyCode = s.currency;
+	c.push({
+	    regex: new RegExp('(\\d*[\\.,]?\\d*)\\s*'+s.symbol),
+	    currency: currencyCode,
+	    amount: function(match) {
+		return match[1];
+	    }
+	});
+	c.push({
+	    regex: new RegExp(s.symbol+'(\\d*[\\.,]?\\d*)'),
+	    currency: currencyCode,
+	    amount: function(match) {
+		return match[1];
+	    }
+	});
     }
-];
+    return c;
+}
+var currencies = getCurrencies();
 
 function sendSearch(amount, currency, onSuccess) {
     var serviceCall = 'https://api.coinbase.com/v2/prices/'+currency+'-'+targetCurrency+'/spot';
@@ -52,24 +56,34 @@ function sendSearch(amount, currency, onSuccess) {
 
 
 var showTooltip = function(txt, box) {
-    tooltip = document.createElement("span");
+    tooltip = document.createElement("div");
     tooltip.appendChild(document.createTextNode(txt));
     document.body.appendChild(tooltip);
-    var left = box.left + (box.width/2) - (tooltip.offsetWidth/2);
+
 
     var s = tooltip.style;
+    s.zIndex = '999';
+    s.display = 'block';
     s.position = 'absolute';
     s.fontFamily = 'Arial,sans-serif,Helvetica';
-    s.fontSize = '15px';
+    s.fontSize = '12px';
     s.color = '#856404';
     s.border = '1px solid #ffeeba';
     s.background = '#fff3cd';
     s.padding = '3px';
     s.borderRadius = '5px';
-    s.boxShadow = "5px 10px 15px #999";
-    s.top = (box.top-tooltip.offsetHeight-3)+'px';
+    s.boxShadow = "5px 5px 10px #666";
+    s.margin = '0';
+    
+    var relative = document.body.parentNode.getBoundingClientRect();
+
+    style = getComputedStyle(tooltip);
+    var w = parseInt(style.width);
+    var h = parseInt(style.height);
+    
+    var left = (box.left-relative.left) + (box.width/2) - (w/2);
     s.left = left+'px';
-    console.log(tooltip.style);
+    s.top = (box.top-relative.top-h-3)+'px';
 };
 
 document.addEventListener('mouseup', function(e) {
@@ -79,8 +93,8 @@ document.addEventListener('mouseup', function(e) {
 	    var match = c.regex.exec(selection);
     	    if(match) {
     	        var amount = c.amount(match).replace(',','.');
-    	        var currency = c.symbol(match);
-	        selectionBox = window.getSelection().getRangeAt(0).getBoundingClientRect();
+    	        var currency = (typeof c.currency === 'function') ? c.currency(match) : c.currency;
+	        var selectionBox = window.getSelection().getRangeAt(0).getBoundingClientRect();
     	        sendSearch(amount, currency, function(txt) {
     	    	    showTooltip(txt, selectionBox);
     		});
