@@ -57,7 +57,7 @@ function sendSearch(amount, currency, onSuccess) {
     x.onload = function() {
 	var d = JSON.parse(x.response);
 	var exchange = d.data.amount*amount;
-	if(!roundingExclude.includes(currency)) {
+	if(!roundingExclude.includes(targetCurrency)) {
 	    exchange = Math.round(exchange*100)/100;
 	}
 	var title = amount+' '+currency+' = '+ exchange+' '+targetCurrency;
@@ -78,11 +78,11 @@ var showTooltip = function(txt, box) {
     s.position = 'absolute';
     s.fontFamily = 'Arial,sans-serif,Helvetica';
     s.fontSize = '12px';
-    s.color = '#856404';
-    s.border = '1px solid #ffeeba';
-    s.background = '#fff3cd';
+    s.color = '#1b1e21';
+    s.border = '1px solid #c6c8ca';
+    s.background = '#d6d8d9';
     s.padding = '3px';
-    s.borderRadius = '5px';
+    s.borderRadius = '3px';
     s.boxShadow = "5px 5px 10px #666";
     s.margin = '0';
     
