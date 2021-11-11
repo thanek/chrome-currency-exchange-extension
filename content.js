@@ -1,5 +1,7 @@
+const targetCurrency = 'PLN';
+const debug = false;
+
 var tooltip = null;
-var targetCurrency = 'PLN';
 
 var symbols = [
     {symbol: '\\$', currency: 'USD'},
@@ -7,10 +9,11 @@ var symbols = [
     {symbol: '£', currency: 'GBP'},
     {symbol: '฿', currency: 'BTC'}
 ];
+var roundingExclude = [ 'BTC' ];
 
-var getCurrencies = function() {
+var createCurrenciesTable = function() {
     var c = [{
-	regex: /(\d*[\.,]?\d*)\s*([A-Z]{3})/,
+	regex: /^(\d*[\.,]?\d*)\s*([A-Z]{3})$/,
 	currency: function(match) {
 	    return match[2];
 	},
@@ -22,14 +25,14 @@ var getCurrencies = function() {
     for(s of symbols) {
 	var currencyCode = s.currency;
 	c.push({
-	    regex: new RegExp('(\\d*[\\.,]?\\d*)\\s*'+s.symbol),
+	    regex: new RegExp('^(\\d*[\\.,]?\\d*)\\s*'+s.symbol+'$'),
 	    currency: currencyCode,
 	    amount: function(match) {
 		return match[1];
 	    }
 	});
 	c.push({
-	    regex: new RegExp(s.symbol+'(\\d*[\\.,]?\\d*)'),
+	    regex: new RegExp('^'+s.symbol+'(\\d*[\\.,]?\\d*)$'),
 	    currency: currencyCode,
 	    amount: function(match) {
 		return match[1];
@@ -38,9 +41,15 @@ var getCurrencies = function() {
     }
     return c;
 }
-var currencies = getCurrencies();
+var currencies = createCurrenciesTable();
+if(debug) {
+    console.log('currencies table', currencies);
+}
 
 function sendSearch(amount, currency, onSuccess) {
+    if(debug) {
+	console.log('Getting exchange for ', amount, currency);
+    }
     var serviceCall = 'https://api.coinbase.com/v2/prices/'+currency+'-'+targetCurrency+'/spot';
 
     var x = new XMLHttpRequest();
@@ -48,6 +57,9 @@ function sendSearch(amount, currency, onSuccess) {
     x.onload = function() {
 	var d = JSON.parse(x.response);
 	var exchange = d.data.amount*amount;
+	if(!roundingExclude.includes(currency)) {
+	    exchange = Math.round(exchange*100)/100;
+	}
 	var title = amount+' '+currency+' = '+ exchange+' '+targetCurrency;
         onSuccess(title);
     };
@@ -59,7 +71,6 @@ var showTooltip = function(txt, box) {
     tooltip = document.createElement("div");
     tooltip.appendChild(document.createTextNode(txt));
     document.body.appendChild(tooltip);
-
 
     var s = tooltip.style;
     s.zIndex = '999';
@@ -91,6 +102,9 @@ document.addEventListener('mouseup', function(e) {
     if (selection != '') {
         for(const c of currencies) {
 	    var match = c.regex.exec(selection);
+	    if(debug) {
+		console.log('checking match against '+selection+' for', c, match);
+	    }
     	    if(match) {
     	        var amount = c.amount(match).replace(',','.');
     	        var currency = (typeof c.currency === 'function') ? c.currency(match) : c.currency;
